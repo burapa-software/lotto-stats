@@ -1,0 +1,84 @@
+name: Update lottery stats
+
+on:
+  # เช็กผลทุกวัน 17:20 และ 20:10 เวลาไทย (GitHub ใช้เวลา UTC)
+  # วันออกรางวัลไม่ตายตัว (เช่น 17 ม.ค., 2 พ.ค., 30 ธ.ค.) จึงเช็กทุกวัน ถ้าไม่มีงวดใหม่ก็ไม่ทำอะไร
+  schedule:
+    - cron: "20 10 * * *"
+    - cron: "10 13 * * *"
+  # กดรันเองได้ที่แท็บ Actions และใส่ผลด้วยมือได้ถ้าดึงอัตโนมัติไม่สำเร็จ
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "วันที่งวด ค.ศ. เช่น 2026-10-16 (เว้นว่างเพื่อดึงอัตโนมัติ)"
+        required: false
+      last2:
+        description: "เลขท้าย 2 ตัว เช่น 57 (เว้นว่างเพื่อดึงอัตโนมัติ)"
+        required: false
+  # แก้ไฟล์เองบนเว็บ GitHub แล้วหน้าเว็บจะอัปเดตตาม
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: lotto-stats
+  cancel-in-progress: false
+
+jobs:
+  update:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch latest draw
+        env:
+          IN_DATE: ${{ github.event.inputs.date }}
+          IN_LAST2: ${{ github.event.inputs.last2 }}
+        run: |
+          if [ -n "$IN_DATE" ] || [ -n "$IN_LAST2" ]; then
+            python scripts/update_draws.py --date "$IN_DATE" --last2 "$IN_LAST2"
+          else
+            python scripts/update_draws.py
+          fi
+      - name: Commit if changed
+        id: commit
+        run: |
+          if git diff --quiet data/draws.csv; then
+            echo "ไม่มีงวดใหม่"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add data/draws.csv
+            git commit -m "อัปเดตผลเลขท้าย 2 ตัว $(tail -n 1 data/draws.csv)"
+            git push
+          fi
+
+  deploy:
+    needs: update
+    # deploy เมื่อมีงวดใหม่ หรือมีการแก้ไฟล์บน main
+    if: always() && (github.event_name == 'push' || needs.update.outputs.changed == 'true')
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deployment
+        uses: actions/deploy-pages@v4

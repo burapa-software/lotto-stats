@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>สถิติเลขท้าย 2 ตัว</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600;700&display=swap">
+<style>
+/* Layout: single reading column; summary → heatmap → yearly table → randomness check → advice */
+:root{
+  --bg:#f3f6f4; --surface:#ffffff; --ink:#15302a; --muted:#5b6e68; --line:#d6e0dc;
+  --heat0:#eef3f1; --heat1:#deefe8; --heat2:#4fa58a; --heat3:#3ee07f;
+  --gold:#b7791f; --goldbg:#fbf1dc;
+  --never:#000000; --never-ink:#555555; --never-edge:#000000; --red:#dc2626; --pink:#f472b6;
+  --f-display:"Bai Jamjuree","IBM Plex Sans Thai",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans Thai",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1715; --surface:#16211e; --ink:#e3ece8; --muted:#94a7a0; --line:#2a3a35;
+  --heat0:#1b2724; --heat1:#1c312c; --heat2:#3a9479; --heat3:#3ee07f;
+  --gold:#e8b45a; --goldbg:#33291a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1715; --surface:#16211e; --ink:#e3ece8; --muted:#94a7a0; --line:#2a3a35;
+  --heat0:#1b2724; --heat1:#1c312c; --heat2:#3a9479; --heat3:#3ee07f;
+  --gold:#e8b45a; --goldbg:#33291a; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.65}
+.wrap{max-width:880px;margin:0 auto;padding-inline:16px;padding-block:28px 56px;display:grid;gap:36px}
+h1,h2{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.25}
+h1{font-size:clamp(26px,5vw,36px)}
+h2{font-size:21px}
+p{margin:0;max-width:68ch}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.lead{color:var(--muted)}
+section{display:grid;gap:14px;min-width:0}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.facts div{background:var(--surface);padding:14px 16px;display:grid;gap:2px}
+.facts b{font-family:var(--f-mono);font-size:26px;font-weight:600}
+.facts span{font-size:13px;color:var(--muted)}
+@media (max-width:620px){.facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.grid-wrap{overflow-x:auto}
+.heat{display:grid;grid-template-columns:28px repeat(10,minmax(34px,1fr));gap:3px;min-width:400px}
+.heat .h{font-family:var(--f-mono);font-size:12px;color:var(--muted);display:grid;place-items:center}
+.cell{aspect-ratio:1;border-radius:5px;display:grid;place-items:center;font-family:var(--f-mono);font-size:13px;position:relative;background:var(--never);color:var(--never-ink);border:1px solid var(--never-edge);cursor:default;max-width:100%;transition:opacity .15s}
+.cell[data-c="1"]{background:var(--heat1);color:var(--ink);border-color:transparent}
+.cell[data-c="2"]{background:var(--heat2);color:#fff;border-color:transparent}
+.cell[data-c="3"]{background:var(--heat3);color:#000;font-weight:700;border-color:transparent}
+.cell.r10{box-shadow:inset 0 0 0 1px var(--pink)}
+.cell.r5{box-shadow:inset 0 0 0 2px var(--red)}
+.cell.r1{background:var(--red)!important;color:#fff!important;border-color:var(--red)}
+.heat.filtering .cell:not(.on){opacity:.07}
+@media (prefers-reduced-motion:reduce){.cell{transition:none}}
+.cell{cursor:pointer}
+.cell:focus-visible{outline:2px solid var(--heat2);outline-offset:2px}
+.cell.sel{outline:3px solid var(--ink);outline-offset:2px;z-index:1}
+.hitcard{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 16px;display:grid;gap:12px}
+.hitcard .top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.hitcard .who{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.hitcard .big{font-family:var(--f-mono);font-size:34px;font-weight:700;line-height:1}
+.hitcard .close{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:4px 12px;cursor:pointer}
+.hitcard .dates{display:flex;flex-wrap:wrap;gap:6px}
+.hitcard .dates span{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:4px 10px;font-size:13px}
+.hitcard .dates span b{font-family:var(--f-mono);font-weight:600}
+.hitcard .dates span.new{border-color:var(--red);color:var(--red)}
+.cell sup{position:absolute;top:2px;right:4px;font-size:9px;opacity:.85}
+.legend{display:flex;flex-wrap:wrap;gap:10px 14px;font-size:13px;color:var(--muted);align-items:center}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:3px;margin-right:6px}
+.legend button{font:inherit;font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 10px 4px 8px;cursor:pointer;display:inline-flex;align-items:center}
+.legend button[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.legend .mk{display:inline-flex;align-items:center}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls button{font:inherit;font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.controls button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button:focus-visible{outline:2px solid var(--heat2);outline-offset:2px}
+.table-box{overflow:auto;max-height:520px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:460px}
+th,td{padding:7px 12px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+th:first-child,td:first-child{text-align:left}
+thead th{position:sticky;top:0;background:var(--surface);z-index:1;font-size:13px;font-weight:600}
+th button{font:inherit;background:none;border:0;color:var(--ink);cursor:pointer;padding:0;text-align:inherit}
+th small{display:block;font-weight:400;color:var(--muted);font-size:11px}
+td.z{color:var(--line)}
+td.t{font-weight:600}
+tr.hot td{background:var(--goldbg)}
+tr.hot td.t{color:var(--gold)}
+.compare{min-width:0}
+.bars{display:grid;gap:6px}
+.bar{display:grid;grid-template-columns:64px 1fr 40px;gap:10px;align-items:center;font-size:13px}
+.bar .track{height:12px;background:var(--heat0);border-radius:3px;overflow:hidden}
+.bar .fill{height:100%;background:var(--heat2)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.two>div{min-width:0;display:grid;gap:8px}
+@media (max-width:620px){.two{grid-template-columns:1fr}}
+.note{border-left:3px solid var(--gold);background:var(--goldbg);padding:14px 16px;border-radius:0 8px 8px 0;display:grid;gap:8px}
+ul{margin:0;padding-left:20px;display:grid;gap:6px;max-width:68ch}
+.recent{display:flex;flex-wrap:wrap;gap:6px}
+.recent span{font-family:var(--f-mono);border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:4px 8px;font-size:13px}
+.recent span small{color:var(--muted);font-family:var(--f-body);margin-left:6px}
+.src{font-size:13px;color:var(--muted)}
+.src a{color:inherit}
+.err{color:var(--red)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header style="display:grid;gap:10px">
+    <div class="eyebrow">สลากกินแบ่งรัฐบาล · เลขท้าย 2 ตัว (2 ตัวล่าง)</div>
+    <h1>สถิติเลขท้าย 2 ตัว ย้อนหลัง 3 ปี</h1>
+    <p class="lead" id="range">กำลังโหลดข้อมูล…</p>
+  </header>
+
+  <section>
+    <div class="facts">
+      <div><b id="f-n">–</b><span>งวดที่นำมานับ</span></div>
+      <div><b id="f-seen">–</b><span>เลขที่เคยออก</span></div>
+      <div><b id="f-never">–</b><span>เลขที่ไม่ออกเลย</span></div>
+      <div><b id="f-max">–</b><span id="f-maxl">ครั้งสูงสุด</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>แผนที่ความถี่ 00–99</h2>
+    <p class="lead">แถวคือหลักสิบ คอลัมน์คือหลักหน่วย ตัวเลขมุมขวาบนคือจำนวนครั้ง กดที่ตัวเลขเพื่อดูว่าออกงวดวันที่เท่าไหร่</p>
+    <div class="grid-wrap"><div class="heat" id="heat"></div></div>
+    <div class="legend" id="legend"></div>
+    <p class="lead" style="font-size:13px">กดที่ปุ่มจำนวนครั้ง เพื่อแสดงเฉพาะกลุ่มนั้น กดซ้ำเพื่อดูทั้งหมด</p>
+    <div class="hitcard" id="hitcard" hidden aria-live="polite"></div>
+  </section>
+
+  <section>
+    <h2>ตารางความถี่แยกตามปี</h2>
+    <p class="lead" id="tbl-note">กดหัวคอลัมน์เพื่อเรียงลำดับ</p>
+    <div class="controls" role="group" aria-label="ตัวกรอง">
+      <button id="f-all" aria-pressed="true">ทั้งหมด 100 เลข</button>
+      <button id="f-seenbtn" aria-pressed="false">เฉพาะที่เคยออก</button>
+      <button id="f-neverbtn" aria-pressed="false">เฉพาะที่ไม่เคยออก</button>
+    </div>
+    <div class="table-box"><table id="tbl"><thead><tr id="thead"></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section>
+    <h2>แยกตามหลัก</h2>
+    <div class="two">
+      <div><div class="eyebrow">หลักสิบ</div><div class="bars" id="ten"></div></div>
+      <div><div class="eyebrow">หลักหน่วย</div><div class="bars" id="unit"></div></div>
+    </div>
+    <p class="lead" id="digit-note"></p>
+  </section>
+
+  <section>
+    <h2>เทียบกับการสุ่มล้วนๆ</h2>
+    <p id="cmp-lead"></p>
+    <div class="table-box" style="max-height:none">
+      <table class="compare">
+        <thead><tr><th>ออกกี่ครั้ง</th><th>คาดการณ์ (สุ่มล้วน)</th><th>ผลจริง</th></tr></thead>
+        <tbody id="cmp"></tbody>
+      </table>
+    </div>
+    <p class="lead" id="sim-note"></p>
+  </section>
+
+  <section>
+    <h2>10 งวดล่าสุด</h2>
+    <div class="recent" id="recent"></div>
+  </section>
+
+  <section>
+    <h2>สรุปและคำแนะนำ</h2>
+    <div class="note">
+      <p><b>ทุกเลขมีโอกาส 1 ใน 100 เท่ากันในทุกงวด</b> สลากออกด้วยวงล้อสุ่ม แต่ละงวดไม่ขึ้นกับงวดก่อน เลขที่ออกบ่อยไม่ได้มีโอกาสสูงขึ้น และเลขที่ไม่ออกนานก็ไม่ได้ "ถึงคิว"</p>
+    </div>
+    <ul id="summary"></ul>
+  </section>
+
+  <p class="src">ข้อมูลอัปเดตอัตโนมัติหลังออกรางวัล · ตรวจผลทางการได้ที่ <a href="https://www.glo.or.th" target="_blank" rel="noopener">glo.or.th</a> · <span id="updated"></span></p>
+</div>
+
+<script>
+const TH_M=["","ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+const pad=n=>String(n).padStart(2,"0");
+const be=d=>+d.slice(0,4)+543;                       // ปี พ.ศ.
+const thDate=d=>`${+d.slice(8,10)} ${TH_M[+d.slice(5,7)]} ${be(d)}`;
+const WINDOW_YEARS=3;
+
+// ---------- pure helpers (testable) ----------
+function parseCSV(text){
+  return text.trim().split(/\r?\n/).slice(1).map(l=>l.split(",").map(s=>s.trim()))
+    .filter(([d,n])=>/^\d{4}-\d{2}-\d{2}$/.test(d)&&/^\d{2}$/.test(n))
+    .sort((a,b)=>a[0]<b[0]?-1:1);
+}
+function windowRows(all){                             // งวดภายใน 3 ปีนับจากงวดล่าสุด
+  const last=all[all.length-1][0];
+  const cut=`${+last.slice(0,4)-WINDOW_YEARS}${last.slice(4)}`;
+  return all.filter(([d])=>d>cut);
+}
+function binom(n,k,p){let c=1;for(let i=0;i<k;i++)c=c*(n-i)/(i+1);return c*p**k*(1-p)**(n-k);}
+function nextDraw(last){                              // งวดปกติถัดไป (1 หรือ 16)
+  let y=+last.slice(0,4),m=+last.slice(5,7),d=+last.slice(8,10);
+  if(d<16)d=16;else{d=1;m++;if(m>12){m=1;y++;}}
+  return `${y}-${pad(m)}-${pad(d)}`;
+}
+
+// ---------- render ----------
+function render(ROWS){
+  const N=ROWS.length, first=ROWS[0][0], last=ROWS[N-1][0];
+  const YEARS=[...new Set(ROWS.map(([d])=>String(be(d))))];
+  const perYear=Object.fromEntries(YEARS.map(y=>[y,ROWS.filter(([d])=>String(be(d))===y).length]));
+  const stats={};
+  for(let i=0;i<100;i++){const k=pad(i);stats[k]={n:k,t:0,g:null};YEARS.forEach(y=>stats[k][y]=0);}
+  ROWS.forEach(([d,n],i)=>{const s=stats[n];s.t++;s[String(be(d))]++;s.g=N-1-i;});
+  const list=Object.values(stats).sort((a,b)=>a.n<b.n?-1:1);  // "10"-"99" เป็น key ตัวเลข จึงต้องเรียงใหม่
+  const maxT=Math.max(...list.map(s=>s.t));
+  const byCount=c=>list.filter(s=>s.t===c).map(s=>s.n);
+  const seen=list.filter(s=>s.t>0).length;
+
+  document.getElementById("range").textContent=`ข้อมูล ${N} งวด ตั้งแต่ ${thDate(first)} ถึง ${thDate(last)} · งวดถัดไปตามปกติคือ ${thDate(nextDraw(last))}`;
+  document.getElementById("f-n").textContent=N;
+  document.getElementById("f-seen").textContent=seen;
+  document.getElementById("f-never").textContent=100-seen;
+  document.getElementById("f-max").textContent=maxT;
+  document.getElementById("f-maxl").textContent=`ครั้งสูงสุด (${byCount(maxT).join(", ")})`;
+
+  // heatmap: level 3 = ออกมากที่สุด, 2 = มากกว่า 1 ครั้งแต่ไม่สูงสุด
+  const lvl=t=>t===0?0:t===maxT&&maxT>1?3:t===1?1:2;
+  const last10=ROWS.slice(-10).reverse().map(r=>r[1]);
+  const mark=n=>{const i=last10.indexOf(n);return i===0?"r1 r5":i>0&&i<5?"r5":i>=5?"r10":"";};
+  const heat=document.getElementById("heat");
+  let h='<div></div>'+[...Array(10)].map((_,u)=>`<div class="h">${u}</div>`).join("");
+  for(let t=0;t<10;t++){h+=`<div class="h">${t}</div>`;
+    for(let u=0;u<10;u++){const s=stats[`${t}${u}`];
+      h+=`<div class="cell ${mark(s.n)}" tabindex="0" role="button" data-n="${s.n}" data-c="${lvl(s.t)}" title="${s.n}: ${s.t} ครั้ง">${s.n}${s.t?`<sup>${s.t}</sup>`:""}</div>`;}}
+  heat.innerHTML=h;
+
+  const levels=[[0,"ไม่ออก","background:var(--never);border:1px solid var(--never-edge)"],[1,"1 ครั้ง","background:var(--heat1)"]];
+  if(maxT>2)levels.push([2,maxT===3?"2 ครั้ง":`2–${maxT-1} ครั้ง`,"background:var(--heat2)"]);
+  if(maxT>1)levels.push([3,`${maxT} ครั้ง (สูงสุด)`,"background:var(--heat3)"]);
+  document.getElementById("legend").innerHTML=levels.map(([f,l,st])=>`<button data-f="${f}" aria-pressed="false"><i style="${st}"></i>${l}</button>`).join("")+
+    `<span class="mk"><i style="background:var(--red)"></i>งวดล่าสุด</span>
+     <span class="mk"><i style="box-shadow:inset 0 0 0 2px var(--red)"></i>ออกใน 5 งวดล่าสุด</span>
+     <span class="mk"><i style="box-shadow:inset 0 0 0 1px var(--pink)"></i>ออกในงวดที่ 6–10</span>`;
+  let heatF=null;
+  document.querySelectorAll("#legend button").forEach(b=>b.addEventListener("click",()=>{
+    heatF=heatF===b.dataset.f?null:b.dataset.f;
+    document.querySelectorAll("#legend button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.f===heatF));
+    heat.classList.toggle("filtering",heatF!==null);
+    heat.querySelectorAll(".cell").forEach(c=>c.classList.toggle("on",c.dataset.c===heatF));
+  }));
+
+  // hit card: กดตัวเลขเพื่อดูงวดที่ออก
+  const card=document.getElementById("hitcard");
+  const fullDate=thDate;
+  function showCard(n){
+    heat.querySelectorAll(".cell.sel").forEach(c=>c.classList.remove("sel"));
+    if(!n){card.hidden=true;return;}
+    heat.querySelector(`[data-n="${n}"]`).classList.add("sel");
+    const hits=ROWS.map(([d,v],i)=>({d,v,ago:N-1-i})).filter(h=>h.v===n).reverse();
+    const head=hits.length?`ออก ${hits.length} ครั้งใน ${N} งวด`:`ไม่ออกเลยใน ${N} งวด`;
+    const body=hits.length
+      ?`<div class="dates">${hits.map(h=>`<span class="${h.ago<5?"new":""}">งวด <b>${fullDate(h.d)}</b></span>`).join("")}</div>
+        <p class="lead">ออกล่าสุดเมื่องวด ${fullDate(hits[0].d)}${hits[0].ago===0?" (งวดล่าสุด)":` ห่างมาแล้ว ${hits[0].ago} งวด`}</p>`
+      :`<p class="lead">ไม่ออกตั้งแต่งวด ${fullDate(ROWS[0][0])} ถึง ${fullDate(ROWS[N-1][0])}</p>`;
+    card.innerHTML=`<div class="top"><div class="who"><span class="big">${n}</span><span>${head}</span></div><button class="close" type="button">ปิด</button></div>${body}`;
+    card.querySelector(".close").addEventListener("click",()=>showCard(null));
+    card.hidden=false;
+    const r=card.getBoundingClientRect();
+    if(r.bottom>innerHeight||r.top<0)card.scrollIntoView({block:"nearest",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
+  }
+  heat.addEventListener("click",e=>{const c=e.target.closest(".cell");if(c)showCard(c.classList.contains("sel")?null:c.dataset.n);});
+  heat.addEventListener("keydown",e=>{const c=e.target.closest(".cell");if(c&&(e.key==="Enter"||e.key===" ")){e.preventDefault();showCard(c.dataset.n);}});
+
+  // year table
+  document.getElementById("thead").innerHTML=`<th><button data-k="n">เลข</button></th>`+
+    YEARS.map(y=>`<th><button data-k="${y}">${y}<small>${perYear[y]} งวด</small></button></th>`).join("")+
+    `<th><button data-k="t">รวม<small>${N} งวด</small></button></th><th><button data-k="g">ห่างล่าสุด<small>งวด</small></button></th>`;
+  document.getElementById("tbl-note").textContent=`ปีแรกและปีล่าสุดมีไม่ครบปี (${YEARS[0]}: ${perYear[YEARS[0]]} งวด, ${YEARS.at(-1)}: ${perYear[YEARS.at(-1)]} งวด) กดหัวคอลัมน์เพื่อเรียงลำดับ`;
+  let sortKey="t",dir=-1,filter="all";
+  const tbody=document.querySelector("#tbl tbody");
+  function drawTable(){
+    const rows=list.filter(s=>filter==="all"||(filter==="seen"?s.t>0:s.t===0));
+    rows.sort((a,b)=>{
+      if(sortKey==="n")return dir*(a.n<b.n?-1:1);
+      const av=sortKey==="g"?(a.g??999):a[sortKey],bv=sortKey==="g"?(b.g??999):b[sortKey];
+      return av===bv?(a.n<b.n?-1:1):dir*(av-bv);});
+    tbody.innerHTML=rows.map(s=>`<tr class="${s.t===maxT&&maxT>1?"hot":""}"><td class="num">${s.n}</td>${YEARS.map(y=>`<td class="num ${s[y]?"":"z"}">${s[y]||"·"}</td>`).join("")}<td class="num t ${s.t?"":"z"}">${s.t}</td><td class="num">${s.g===null?`<span style="color:var(--muted)">ไม่ออกใน ${N} งวด</span>`:s.g}</td></tr>`).join("");
+  }
+  document.querySelectorAll("#thead button").forEach(b=>b.addEventListener("click",()=>{
+    const k=b.dataset.k;if(k===sortKey)dir*=-1;else{sortKey=k;dir=k==="n"||k==="g"?1:-1;}drawTable();}));
+  [["f-all","all"],["f-seenbtn","seen"],["f-neverbtn","never"]].forEach(([id,f])=>document.getElementById(id).addEventListener("click",()=>{
+    filter=f;document.querySelectorAll(".controls button").forEach(x=>x.setAttribute("aria-pressed",x.id===id));drawTable();}));
+  drawTable();
+
+  // digits + chi-square (df=9, ค่าวิกฤตที่ 5% = 16.92)
+  const chi=c=>{const e=N/10;return c.reduce((a,v)=>a+(v-e)**2/e,0);};
+  const digit=(el,pos)=>{const c=Array(10).fill(0);ROWS.forEach(([,n])=>c[+n[pos]]++);const mx=Math.max(...c);
+    document.getElementById(el).innerHTML=c.map((v,d)=>`<div class="bar"><span>เลข ${d}</span><div class="track"><div class="fill" style="width:${v/mx*100}%"></div></div><span class="num">${v}</span></div>`).join("");return chi(c);};
+  const x1=digit("ten",0),x2=digit("unit",1);
+  const ok=x1<16.92&&x2<16.92;
+  document.getElementById("digit-note").textContent=`ค่าเฉลี่ยคือ ${(N/10).toFixed(1)} ครั้งต่อหลัก ค่าไคสแควร์หลักสิบ ${x1.toFixed(1)} หลักหน่วย ${x2.toFixed(1)} (ต้องเกิน 16.9 จึงจะถือว่าผิดปกติ) ${ok?"ทั้งสองหลักยังอยู่ในช่วงที่การสุ่มทำได้ตามปกติ":"มีหลักที่เบี่ยงจากค่าเฉลี่ยมากกว่าปกติ ควรดูข้อมูลเพิ่ม"}`;
+
+  // compare with pure randomness
+  const actual=k=>k<3?byCount(k).length:list.filter(s=>s.t>=3).length;
+  const expect=k=>100*(k<3?binom(N,k,.01):1-binom(N,0,.01)-binom(N,1,.01)-binom(N,2,.01));
+  document.getElementById("cmp-lead").textContent=`ถ้าเลข 00–99 มีโอกาสออกเท่ากันทุกตัว (1%) ใน ${N} งวด คณิตศาสตร์คาดไว้แบบนี้`;
+  document.getElementById("cmp").innerHTML=["0 ครั้ง","1 ครั้ง","2 ครั้ง","3 ครั้งขึ้นไป"].map((l,k)=>`<tr><td>${l}</td><td class="num">${expect(k).toFixed(1)} เลข</td><td class="num">${actual(k)} เลข</td></tr>`).join("");
+  let hit=0;const SIMS=4000;
+  for(let s=0;s<SIMS;s++){const c=new Uint8Array(100);let m=0;for(let i=0;i<N;i++){const v=++c[Math.random()*100|0];if(v>m)m=v;}if(m>=maxT)hit++;}
+  document.getElementById("sim-note").textContent=`จำลองการสุ่ม ${SIMS.toLocaleString()} รอบ พบว่า ${Math.round(hit/SIMS*100)}% ของรอบจะมีอย่างน้อยหนึ่งเลขที่ออก ${maxT} ครั้งขึ้นไปอยู่แล้ว การมีเลขที่ออกบ่อยจึงเป็นเรื่องปกติของการสุ่ม ไม่ใช่สัญญาณว่าเลขนั้น "ร้อน"`;
+
+  // recent
+  document.getElementById("recent").innerHTML=ROWS.slice(-10).reverse().map(([d,n])=>`<span>${n}<small>${+d.slice(8,10)} ${TH_M[+d.slice(5,7)]} ${String(be(d)).slice(2)}</small></span>`).join("");
+
+  // summary
+  const second=[...new Set(list.map(s=>s.t))].sort((a,b)=>b-a)[1];
+  const nev=byCount(0);
+  document.getElementById("summary").innerHTML=
+    `<li><b>ออกบ่อยใน ${N} งวด:</b> ${byCount(maxT).join(" ")} (${maxT} ครั้ง)${second>0?` ตามด้วย ${byCount(second).join(" ")} (${second} ครั้ง)`:""}</li>
+     <li><b>ไม่ออกเลย:</b> ${nev.length} เลข เช่น ${nev.slice(0,8).join(" ")}${nev.length>8?" ฯลฯ":""} ใกล้กับจำนวนที่การสุ่มคาดไว้ (${expect(0).toFixed(1)} เลข)</li>
+     <li><b>ถ้าจะเล่น:</b> เลือกเลขที่ชอบหรือมีความหมายกับคุณได้เลย ผลไม่ต่างจากการเลือกตามสถิติ ตั้งงบที่เสียได้โดยไม่เดือดร้อน และอย่าเพิ่มเงินเพื่อไล่ตามเลขที่ "ใกล้ออก"</li>
+     <li><b>ความคุ้ม:</b> รางวัลเลขท้าย 2 ตัว 2,000 บาทต่อใบ โอกาส 1% ค่าคาดหวังจากรางวัลนี้ประมาณ 20 บาทต่อใบที่ราคา 80 บาท</li>`;
+  document.getElementById("updated").textContent=`ข้อมูลล่าสุด: งวด ${thDate(last)}`;
+}
+
+fetch("data/draws.csv",{cache:"no-store"})
+  .then(r=>{if(!r.ok)throw new Error(r.status);return r.text();})
+  .then(t=>{const all=parseCSV(t);if(!all.length)throw new Error("ไม่มีข้อมูล");render(windowRows(all));})
+  .catch(e=>{const el=document.getElementById("range");el.textContent=`โหลดไฟล์ data/draws.csv ไม่ได้ (${e.message}) ถ้าเปิดไฟล์จากเครื่องโดยตรง ให้เปิดผ่าน GitHub Pages หรือเซิร์ฟเวอร์แทน`;el.className="err";});
+</script>
+</body>
+</html>
