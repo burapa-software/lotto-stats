@@ -114,27 +114,16 @@ ul{margin:0;padding-left:20px;display:grid;gap:6px;max-width:68ch}
     <p class="lead" id="range">กำลังโหลดข้อมูล…</p>
   </header>
 
-  <section>
-    <div class="facts">
-      <div><b id="f-n">–</b><span>งวดที่นำมานับ</span></div>
-      <div><b id="f-seen">–</b><span>เลขที่เคยออก</span></div>
-      <div><b id="f-never">–</b><span>เลขที่ไม่ออกเลย</span></div>
-      <div><b id="f-max">–</b><span id="f-maxl">ครั้งสูงสุด</span></div>
-    </div>
-  </section>
 
   <section>
     <h2>แผนที่ความถี่ 00–99</h2>
-    <p class="lead">แถวคือหลักสิบ คอลัมน์คือหลักหน่วย ตัวเลขมุมขวาบนคือจำนวนครั้ง กดที่ตัวเลขเพื่อดูว่าออกงวดวันที่เท่าไหร่</p>
     <div class="grid-wrap"><div class="heat" id="heat"></div></div>
     <div class="legend" id="legend"></div>
-    <p class="lead" style="font-size:13px">กดที่ปุ่มจำนวนครั้ง เพื่อแสดงเฉพาะกลุ่มนั้น กดซ้ำเพื่อดูทั้งหมด</p>
     <div class="hitcard" id="hitcard" hidden aria-live="polite"></div>
   </section>
 
   <section>
     <h2>ตารางความถี่แยกตามปี</h2>
-    <p class="lead" id="tbl-note">กดหัวคอลัมน์เพื่อเรียงลำดับ</p>
     <div class="controls" role="group" aria-label="ตัวกรอง">
       <button id="f-all" aria-pressed="true">ทั้งหมด 100 เลข</button>
       <button id="f-seenbtn" aria-pressed="false">เฉพาะที่เคยออก</button>
@@ -149,20 +138,8 @@ ul{margin:0;padding-left:20px;display:grid;gap:6px;max-width:68ch}
       <div><div class="eyebrow">หลักสิบ</div><div class="bars" id="ten"></div></div>
       <div><div class="eyebrow">หลักหน่วย</div><div class="bars" id="unit"></div></div>
     </div>
-    <p class="lead" id="digit-note"></p>
   </section>
 
-  <section>
-    <h2>เทียบกับการสุ่มล้วนๆ</h2>
-    <p id="cmp-lead"></p>
-    <div class="table-box" style="max-height:none">
-      <table class="compare">
-        <thead><tr><th>ออกกี่ครั้ง</th><th>คาดการณ์ (สุ่มล้วน)</th><th>ผลจริง</th></tr></thead>
-        <tbody id="cmp"></tbody>
-      </table>
-    </div>
-    <p class="lead" id="sim-note"></p>
-  </section>
 
   <section>
     <h2>10 งวดล่าสุด</h2>
@@ -177,7 +154,6 @@ ul{margin:0;padding-left:20px;display:grid;gap:6px;max-width:68ch}
     <ul id="summary"></ul>
   </section>
 
-  <p class="src">ข้อมูลอัปเดตอัตโนมัติหลังออกรางวัล · ตรวจผลทางการได้ที่ <a href="https://www.glo.or.th" target="_blank" rel="noopener">glo.or.th</a> · <span id="updated"></span></p>
 </div>
 
 <script>
@@ -205,6 +181,8 @@ function nextDraw(last){                              // งวดปกติ�
   return `${y}-${pad(m)}-${pad(d)}`;
 }
 
+const $=id=>document.getElementById(id)||{};
+
 // ---------- render ----------
 function render(ROWS){
   const N=ROWS.length, first=ROWS[0][0], last=ROWS[N-1][0];
@@ -218,18 +196,18 @@ function render(ROWS){
   const byCount=c=>list.filter(s=>s.t===c).map(s=>s.n);
   const seen=list.filter(s=>s.t>0).length;
 
-  document.getElementById("range").textContent=`ข้อมูล ${N} งวด ตั้งแต่ ${thDate(first)} ถึง ${thDate(last)} · งวดถัดไปตามปกติคือ ${thDate(nextDraw(last))}`;
-  document.getElementById("f-n").textContent=N;
-  document.getElementById("f-seen").textContent=seen;
-  document.getElementById("f-never").textContent=100-seen;
-  document.getElementById("f-max").textContent=maxT;
-  document.getElementById("f-maxl").textContent=`ครั้งสูงสุด (${byCount(maxT).join(", ")})`;
+  $("range").textContent=`ข้อมูล ${N} งวด ตั้งแต่ ${thDate(first)} ถึง ${thDate(last)} · งวดถัดไปตามปกติคือ ${thDate(nextDraw(last))}`;
+  $("f-n").textContent=N;
+  $("f-seen").textContent=seen;
+  $("f-never").textContent=100-seen;
+  $("f-max").textContent=maxT;
+  $("f-maxl").textContent=`ครั้งสูงสุด (${byCount(maxT).join(", ")})`;
 
   // heatmap: level 3 = ออกมากที่สุด, 2 = มากกว่า 1 ครั้งแต่ไม่สูงสุด
   const lvl=t=>t===0?0:t===maxT&&maxT>1?3:t===1?1:2;
   const last10=ROWS.slice(-10).reverse().map(r=>r[1]);
   const mark=n=>{const i=last10.indexOf(n);return i===0?"r1 r5":i>0&&i<5?"r5":i>=5?"r10":"";};
-  const heat=document.getElementById("heat");
+  const heat=$("heat");
   let h='<div></div>'+[...Array(10)].map((_,u)=>`<div class="h">${u}</div>`).join("");
   for(let t=0;t<10;t++){h+=`<div class="h">${t}</div>`;
     for(let u=0;u<10;u++){const s=stats[`${t}${u}`];
@@ -239,7 +217,7 @@ function render(ROWS){
   const levels=[[0,"ไม่ออก","background:var(--never);border:1px solid var(--never-edge)"],[1,"1 ครั้ง","background:var(--heat1)"]];
   if(maxT>2)levels.push([2,maxT===3?"2 ครั้ง":`2–${maxT-1} ครั้ง`,"background:var(--heat2)"]);
   if(maxT>1)levels.push([3,`${maxT} ครั้ง (สูงสุด)`,"background:var(--heat3)"]);
-  document.getElementById("legend").innerHTML=levels.map(([f,l,st])=>`<button data-f="${f}" aria-pressed="false"><i style="${st}"></i>${l}</button>`).join("")+
+  $("legend").innerHTML=levels.map(([f,l,st])=>`<button data-f="${f}" aria-pressed="false"><i style="${st}"></i>${l}</button>`).join("")+
     `<span class="mk"><i style="background:var(--red)"></i>งวดล่าสุด</span>
      <span class="mk"><i style="box-shadow:inset 0 0 0 2px var(--red)"></i>ออกใน 5 งวดล่าสุด</span>
      <span class="mk"><i style="box-shadow:inset 0 0 0 1px var(--pink)"></i>ออกในงวดที่ 6–10</span>`;
@@ -252,7 +230,7 @@ function render(ROWS){
   }));
 
   // hit card: กดตัวเลขเพื่อดูงวดที่ออก
-  const card=document.getElementById("hitcard");
+  const card=$("hitcard");
   const fullDate=thDate;
   function showCard(n){
     heat.querySelectorAll(".cell.sel").forEach(c=>c.classList.remove("sel"));
@@ -274,10 +252,10 @@ function render(ROWS){
   heat.addEventListener("keydown",e=>{const c=e.target.closest(".cell");if(c&&(e.key==="Enter"||e.key===" ")){e.preventDefault();showCard(c.dataset.n);}});
 
   // year table
-  document.getElementById("thead").innerHTML=`<th><button data-k="n">เลข</button></th>`+
+  $("thead").innerHTML=`<th><button data-k="n">เลข</button></th>`+
     YEARS.map(y=>`<th><button data-k="${y}">${y}<small>${perYear[y]} งวด</small></button></th>`).join("")+
     `<th><button data-k="t">รวม<small>${N} งวด</small></button></th><th><button data-k="g">ห่างล่าสุด<small>งวด</small></button></th>`;
-  document.getElementById("tbl-note").textContent=`ปีแรกและปีล่าสุดมีไม่ครบปี (${YEARS[0]}: ${perYear[YEARS[0]]} งวด, ${YEARS.at(-1)}: ${perYear[YEARS.at(-1)]} งวด) กดหัวคอลัมน์เพื่อเรียงลำดับ`;
+  $("tbl-note").textContent=`ปีแรกและปีล่าสุดมีไม่ครบปี (${YEARS[0]}: ${perYear[YEARS[0]]} งวด, ${YEARS.at(-1)}: ${perYear[YEARS.at(-1)]} งวด) กดหัวคอลัมน์เพื่อเรียงลำดับ`;
   let sortKey="t",dir=-1,filter="all";
   const tbody=document.querySelector("#tbl tbody");
   function drawTable(){
@@ -290,45 +268,41 @@ function render(ROWS){
   }
   document.querySelectorAll("#thead button").forEach(b=>b.addEventListener("click",()=>{
     const k=b.dataset.k;if(k===sortKey)dir*=-1;else{sortKey=k;dir=k==="n"||k==="g"?1:-1;}drawTable();}));
-  [["f-all","all"],["f-seenbtn","seen"],["f-neverbtn","never"]].forEach(([id,f])=>document.getElementById(id).addEventListener("click",()=>{
+  [["f-all","all"],["f-seenbtn","seen"],["f-neverbtn","never"]].forEach(([id,f])=>$(id).addEventListener("click",()=>{
     filter=f;document.querySelectorAll(".controls button").forEach(x=>x.setAttribute("aria-pressed",x.id===id));drawTable();}));
   drawTable();
 
   // digits + chi-square (df=9, ค่าวิกฤตที่ 5% = 16.92)
   const chi=c=>{const e=N/10;return c.reduce((a,v)=>a+(v-e)**2/e,0);};
   const digit=(el,pos)=>{const c=Array(10).fill(0);ROWS.forEach(([,n])=>c[+n[pos]]++);const mx=Math.max(...c);
-    document.getElementById(el).innerHTML=c.map((v,d)=>`<div class="bar"><span>เลข ${d}</span><div class="track"><div class="fill" style="width:${v/mx*100}%"></div></div><span class="num">${v}</span></div>`).join("");return chi(c);};
+    $(el).innerHTML=c.map((v,d)=>`<div class="bar"><span>เลข ${d}</span><div class="track"><div class="fill" style="width:${v/mx*100}%"></div></div><span class="num">${v}</span></div>`).join("");return chi(c);};
   const x1=digit("ten",0),x2=digit("unit",1);
   const ok=x1<16.92&&x2<16.92;
-  document.getElementById("digit-note").textContent=`ค่าเฉลี่ยคือ ${(N/10).toFixed(1)} ครั้งต่อหลัก ค่าไคสแควร์หลักสิบ ${x1.toFixed(1)} หลักหน่วย ${x2.toFixed(1)} (ต้องเกิน 16.9 จึงจะถือว่าผิดปกติ) ${ok?"ทั้งสองหลักยังอยู่ในช่วงที่การสุ่มทำได้ตามปกติ":"มีหลักที่เบี่ยงจากค่าเฉลี่ยมากกว่าปกติ ควรดูข้อมูลเพิ่ม"}`;
+  $("digit-note").textContent=`ค่าเฉลี่ยคือ ${(N/10).toFixed(1)} ครั้งต่อหลัก ค่าไคสแควร์หลักสิบ ${x1.toFixed(1)} หลักหน่วย ${x2.toFixed(1)} (ต้องเกิน 16.9 จึงจะถือว่าผิดปกติ) ${ok?"ทั้งสองหลักยังอยู่ในช่วงที่การสุ่มทำได้ตามปกติ":"มีหลักที่เบี่ยงจากค่าเฉลี่ยมากกว่าปกติ ควรดูข้อมูลเพิ่ม"}`;
 
   // compare with pure randomness
   const actual=k=>k<3?byCount(k).length:list.filter(s=>s.t>=3).length;
   const expect=k=>100*(k<3?binom(N,k,.01):1-binom(N,0,.01)-binom(N,1,.01)-binom(N,2,.01));
-  document.getElementById("cmp-lead").textContent=`ถ้าเลข 00–99 มีโอกาสออกเท่ากันทุกตัว (1%) ใน ${N} งวด คณิตศาสตร์คาดไว้แบบนี้`;
-  document.getElementById("cmp").innerHTML=["0 ครั้ง","1 ครั้ง","2 ครั้ง","3 ครั้งขึ้นไป"].map((l,k)=>`<tr><td>${l}</td><td class="num">${expect(k).toFixed(1)} เลข</td><td class="num">${actual(k)} เลข</td></tr>`).join("");
-  let hit=0;const SIMS=4000;
-  for(let s=0;s<SIMS;s++){const c=new Uint8Array(100);let m=0;for(let i=0;i<N;i++){const v=++c[Math.random()*100|0];if(v>m)m=v;}if(m>=maxT)hit++;}
-  document.getElementById("sim-note").textContent=`จำลองการสุ่ม ${SIMS.toLocaleString()} รอบ พบว่า ${Math.round(hit/SIMS*100)}% ของรอบจะมีอย่างน้อยหนึ่งเลขที่ออก ${maxT} ครั้งขึ้นไปอยู่แล้ว การมีเลขที่ออกบ่อยจึงเป็นเรื่องปกติของการสุ่ม ไม่ใช่สัญญาณว่าเลขนั้น "ร้อน"`;
+  $("cmp-lead").textContent=`ถ้าเลข 00–99 มีโอกาสออกเท่ากันทุกตัว (1%) ใน ${N} งวด คณิตศาสตร์คาดไว้แบบนี้`;
+  $("cmp").innerHTML=["0 ครั้ง","1 ครั้ง","2 ครั้ง","3 ครั้งขึ้นไป"].map((l,k)=>`<tr><td>${l}</td><td class="num">${expect(k).toFixed(1)} เลข</td><td class="num">${actual(k)} เลข</td></tr>`).join("");
 
   // recent
-  document.getElementById("recent").innerHTML=ROWS.slice(-10).reverse().map(([d,n])=>`<span>${n}<small>${+d.slice(8,10)} ${TH_M[+d.slice(5,7)]} ${String(be(d)).slice(2)}</small></span>`).join("");
+  $("recent").innerHTML=ROWS.slice(-10).reverse().map(([d,n])=>`<span>${n}<small>${+d.slice(8,10)} ${TH_M[+d.slice(5,7)]} ${String(be(d)).slice(2)}</small></span>`).join("");
 
   // summary
   const second=[...new Set(list.map(s=>s.t))].sort((a,b)=>b-a)[1];
   const nev=byCount(0);
-  document.getElementById("summary").innerHTML=
+  $("summary").innerHTML=
     `<li><b>ออกบ่อยใน ${N} งวด:</b> ${byCount(maxT).join(" ")} (${maxT} ครั้ง)${second>0?` ตามด้วย ${byCount(second).join(" ")} (${second} ครั้ง)`:""}</li>
      <li><b>ไม่ออกเลย:</b> ${nev.length} เลข เช่น ${nev.slice(0,8).join(" ")}${nev.length>8?" ฯลฯ":""} ใกล้กับจำนวนที่การสุ่มคาดไว้ (${expect(0).toFixed(1)} เลข)</li>
-     <li><b>ถ้าจะเล่น:</b> เลือกเลขที่ชอบหรือมีความหมายกับคุณได้เลย ผลไม่ต่างจากการเลือกตามสถิติ ตั้งงบที่เสียได้โดยไม่เดือดร้อน และอย่าเพิ่มเงินเพื่อไล่ตามเลขที่ "ใกล้ออก"</li>
-     <li><b>ความคุ้ม:</b> รางวัลเลขท้าย 2 ตัว 2,000 บาทต่อใบ โอกาส 1% ค่าคาดหวังจากรางวัลนี้ประมาณ 20 บาทต่อใบที่ราคา 80 บาท</li>`;
-  document.getElementById("updated").textContent=`ข้อมูลล่าสุด: งวด ${thDate(last)}`;
+     `;
+  $("updated").textContent=`ข้อมูลล่าสุด: งวด ${thDate(last)}`;
 }
 
 fetch("data/draws.csv",{cache:"no-store"})
   .then(r=>{if(!r.ok)throw new Error(r.status);return r.text();})
   .then(t=>{const all=parseCSV(t);if(!all.length)throw new Error("ไม่มีข้อมูล");render(windowRows(all));})
-  .catch(e=>{const el=document.getElementById("range");el.textContent=`โหลดไฟล์ data/draws.csv ไม่ได้ (${e.message}) ถ้าเปิดไฟล์จากเครื่องโดยตรง ให้เปิดผ่าน GitHub Pages หรือเซิร์ฟเวอร์แทน`;el.className="err";});
+  .catch(e=>{const el=$("range");el.textContent=`โหลดไฟล์ data/draws.csv ไม่ได้ (${e.message}) ถ้าเปิดไฟล์จากเครื่องโดยตรง ให้เปิดผ่าน GitHub Pages หรือเซิร์ฟเวอร์แทน`;el.className="err";});
 </script>
 </body>
 </html>
